@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Obj : Object
 {
+    public byte[] _matIndex;
     // Start is called before the first frame update
     void Start()
     {
@@ -16,7 +17,7 @@ public class Obj : Object
 
     }
 
-    public new void SetObject(ObjectContainer container)
+    public override void SetObject(ObjectContainer container)
     {
         _container = container;
         transform.position = _container._position;
@@ -25,4 +26,5 @@ public class Obj : Object
             _container._rotation[0]);
         transform.localScale = new Vector3(_container._scale[0], _container._scale[1], _container._scale[2]);
     }
+
 }

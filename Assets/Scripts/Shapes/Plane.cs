@@ -8,7 +8,6 @@ public class Plane : Object
     // Start is called before the first frame update
     void Start()
     {
-        
     }
 
     // Update is called once per frame
@@ -17,15 +16,15 @@ public class Plane : Object
 
     }
 
-    public new void SetObject(ObjectContainer container)
+    public override void SetObject(ObjectContainer container)
     {
         _container = container;
         transform.position = _container._position;
-        transform.rotation = Quaternion.Euler(new Vector3(0, 0, 90));
+        transform.rotation = Quaternion.Euler(new Vector3(0, 0, 0));
         transform.Rotate(new Vector3(_container._rotation[1], _container._rotation[2], _container._rotation[3]),
             _container._rotation[0]);
-        transform.localScale = new Vector3(_container._shapeContainer._size[0] / 10f,
-            1, _container._shapeContainer._size[1] / 10f);
+        transform.localScale = new Vector3(_container._shapeContainer._size[0] / 10000f,
+            _container._shapeContainer._size[0], _container._shapeContainer._size[1]);
         SetMat();
     }
     public new void SetMat()
@@ -34,21 +33,24 @@ public class Plane : Object
         {
             Texture2D colorMap = LoadTexImg(_container._material._colorMapFilePath);
             Texture2D bumpMap = LoadTexImg(_container._material._bumpMapFilePath);
-            UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Ciconia Studio/CS_Standard/Builtin/Lite/Standard (Specular setup)/Opaque"));
+            UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Standard"));
+            //UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Ciconia Studio/CS_Standard/Builtin/Lite/Standard (Specular setup)/Opaque"));
             mat.SetTexture("_MainTex", colorMap);
             mat.SetTexture("_BumpMap", bumpMap);
             transform.GetComponent<MeshRenderer>().material = mat;
         }
         else if (_container._material._matType == MatType.Normal)
         {
-            UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Ciconia Studio/CS_Standard/Builtin/Lite/Standard (Specular setup)/Opaque"));
+            UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Standard (Specular setup)"));
+            //UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Ciconia Studio/CS_Standard/Builtin/Lite/Standard (Specular setup)/Opaque"));
             mat.SetColor("_Color", _container._material._colorKd);
             mat.SetColor("_SpecColor", _container._material._colorKs);
             transform.GetComponent<MeshRenderer>().material = mat;
         }
         else if (_container._material._matType == MatType.Mirror)
         {
-            UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Ciconia Studio/CS_Standard/Builtin/Lite/Standard (Specular setup)/Opaque"));
+            UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Standard (Specular setup)"));
+            //UnityEngine.Material mat = new UnityEngine.Material(Shader.Find("Ciconia Studio/CS_Standard/Builtin/Lite/Standard (Specular setup)/Opaque"));
             mat.SetColor("_Color", Color.white);
             mat.SetColor("_SpecColor", Color.white);
             mat.SetFloat("_Smoothness", 1f);

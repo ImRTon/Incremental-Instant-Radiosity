@@ -1,6 +1,6 @@
 Film "image"
 # for orthographic vs perspective comparisons:
-	"integer xresolution" [800] "integer yresolution" [800]
+	"integer xresolution" [400] "integer yresolution" [400]
 	"string filename" "sibenik-whitted.png"
 
 Sampler "integer pixelsamples" [16]

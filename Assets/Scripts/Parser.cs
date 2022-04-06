@@ -7,13 +7,17 @@ using Dummiesman;
 
 public class Parser : MonoBehaviour
 {
-    public int _pixelSamples = 1;
+    public int _pixelSamples = 100;
+
+    public int _AOSamples = 10;
     public int _resolutionX = 1600;
     public int _resolutionY = 900;
 
 
     public Camera _camera;
     public RawImage _canvas;
+
+    public string _rootFolder = "C://";
 
     /* Prefabs */
     public GameObject LightSource;
@@ -36,7 +40,8 @@ public class Parser : MonoBehaviour
 
     public void Parse(string filePath)
     {
-        string rootFolder = Directory.GetParent(filePath).FullName;
+        RayTraceUtils._objects.Clear();
+        _rootFolder = Directory.GetParent(filePath).FullName;
         StreamReader reader = new StreamReader(filePath);
         string line;
         while ((line = reader.ReadLine()) != null)
@@ -55,21 +60,17 @@ public class Parser : MonoBehaviour
 
             for (int i = 0; i < words.Count; i++)
             {
-                Debug.Log(words[i]);
+                // Debug.Log(words[i]);
                 switch (words[i])
                 {
                     /* Camera Setting*/
                     case "integer xresolution":
                         _resolutionX = int.Parse(words[i + 1]);
-                        _canvas.rectTransform.sizeDelta = new Vector2(_resolutionX, _resolutionY);
-                        _canvas.rectTransform.anchoredPosition = new Vector3(-_resolutionX / 2, 0, 0);
                         i++;
                         break;
 
                     case "integer yresolution":
                         _resolutionY = int.Parse(words[i + 1]);
-                        _canvas.rectTransform.sizeDelta = new Vector2(_resolutionX, _resolutionY);
-                        _canvas.rectTransform.anchoredPosition = new Vector3(-_resolutionX / 2, 0, 0);
                         i++;
                         break;
 
@@ -185,7 +186,7 @@ public class Parser : MonoBehaviour
 
                                                                 case "point from":
                                                                     List<float> posVecs = GetNums(obWords[l + 1]);
-                                                                    ob.transform.position = new Vector3(posVecs[0], posVecs[2], posVecs[1]);
+                                                                    ob.transform.position = new Vector3(posVecs[0], posVecs[1], posVecs[2]);
                                                                     l++;
                                                                     break;
 
@@ -196,18 +197,19 @@ public class Parser : MonoBehaviour
 
                                                                 case "float width":
                                                                     obLight._area[0] = float.Parse(obWords[l + 1]);
-                                                                    obLight._lightSource.areaSize = obLight._area;
+                                                                    //obLight._lightSource.areaSize = obLight._area;
                                                                     l++;
                                                                     break;
 
                                                                 case "float height":
                                                                     obLight._area[1] = float.Parse(obWords[l + 1]);
-                                                                    obLight._lightSource.areaSize = obLight._area;
+                                                                    //obLight._lightSource.areaSize = obLight._area;
                                                                     l++;
                                                                     break;
                                                             }
                                                             k = l;
                                                         }
+                                                        RayTraceUtils._lightObjects.Add(ob.GetHashCode(), obLight);
                                                         break;
 
                                                     case "Translate":
@@ -246,13 +248,13 @@ public class Parser : MonoBehaviour
 
                                                                 case "color map":
                                                                     obCont._material._matType = MatType.Map;
-                                                                    obCont._material._colorMapFilePath = rootFolder + '/' + obWords[l + 1];
+                                                                    obCont._material._colorMapFilePath = Path.Combine(_rootFolder, obWords[l + 1]);
                                                                     l++;
                                                                     break;
 
                                                                 case "bump map":
                                                                     obCont._material._matType = MatType.Map;
-                                                                    obCont._material._bumpMapFilePath = rootFolder + '/' + obWords[l + 1];
+                                                                    obCont._material._bumpMapFilePath = Path.Combine(_rootFolder, obWords[l + 1]);
                                                                     l++;
                                                                     break;
                                                             }
@@ -324,7 +326,8 @@ public class Parser : MonoBehaviour
 
                                                     case "Include":
                                                         obCont._obType = ObjectType.Obj;
-                                                        obCont._filePath = Path.Combine(rootFolder, obWords[k + 1]);
+                                                        obCont._filePath = Path.Combine(_rootFolder, obWords[k + 1]);
+                                                        obCont._material._matType = MatType.Obj;
                                                         break;
 
                                                 }
@@ -333,6 +336,14 @@ public class Parser : MonoBehaviour
 
                                             if (isObSettingEnd)
                                             {
+                                                // Set Canvas
+                                                _canvas.rectTransform.sizeDelta = new Vector2(_resolutionX / _resolutionY * 900, 900);
+                                                _canvas.rectTransform.anchoredPosition = new Vector3(-_resolutionX / _resolutionY * 900 / 2, 0, 0);
+
+                                                // Set Camera
+
+                                                _camera.targetTexture = new RenderTexture(_resolutionX, _resolutionY, 0);
+                                                _canvas.texture = _camera.targetTexture;
                                                 // Create Object
                                                 switch (obCont._obType)
                                                 {
@@ -341,23 +352,39 @@ public class Parser : MonoBehaviour
                                                         {
 
                                                             case ObShape.Cylinder:
-                                                                ob = Instantiate(Cylinder);
-                                                                ob.GetComponent<Cylinder>().SetObject(obCont);
+                                                                {
+                                                                    ob = Instantiate(Cylinder);
+                                                                    Cylinder obClass = ob.GetComponent<Cylinder>();
+                                                                    obClass.SetObject(obCont);
+                                                                    RayTraceUtils._objects.Add(ob.GetHashCode(), obClass);
+                                                                }
                                                                 break;
 
                                                             case ObShape.Sphere:
-                                                                ob = Instantiate(Sphere);
-                                                                ob.GetComponent<Sphere>().SetObject(obCont);
+                                                                {
+                                                                    ob = Instantiate(Sphere);
+                                                                    Sphere obClass = ob.GetComponent<Sphere>();
+                                                                    obClass.SetObject(obCont);
+                                                                    RayTraceUtils._objects.Add(ob.GetHashCode(), obClass);
+                                                                }
                                                                 break;
 
                                                             case ObShape.Cone:
-                                                                ob = Instantiate(Cone);
-                                                                ob.GetComponent<Cone>().SetObject(obCont);
+                                                                {
+                                                                    ob = Instantiate(Cone);
+                                                                    Cone obClass = ob.GetComponent<Cone>();
+                                                                    obClass.SetObject(obCont);
+                                                                    RayTraceUtils._objects.Add(ob.GetHashCode(), obClass);
+                                                                }
                                                                 break;
 
                                                             case ObShape.Plane:
-                                                                ob = Instantiate(Plane);
-                                                                ob.GetComponent<Plane>().SetObject(obCont);
+                                                                {
+                                                                    ob = Instantiate(Plane);
+                                                                    Plane obClass = ob.GetComponent<Plane>();
+                                                                    obClass.SetObject(obCont);
+                                                                    RayTraceUtils._objects.Add(ob.GetHashCode(), obClass);
+                                                                }
                                                                 break;
                                                         }
                                                         break;
@@ -365,8 +392,46 @@ public class Parser : MonoBehaviour
                                                     case ObjectType.Obj:
                                                         string mtlPath = Path.GetFileNameWithoutExtension(obCont._filePath) + ".mtl";
                                                         var loadedObj = new OBJLoader().Load(obCont._filePath, mtlPath);
+                                                        loadedObj.transform.GetChild(0).gameObject.AddComponent<MeshCollider>();
                                                         Obj objContainer = loadedObj.AddComponent<Obj>();
                                                         objContainer.SetObject(obCont);
+                                                        RayTraceUtils._objects.Add(loadedObj.transform.GetChild(0).gameObject.GetHashCode(), objContainer);
+
+                                                        // Mesh process
+                                                        Mesh mesh = loadedObj.transform.GetChild(0).GetComponent<MeshFilter>().mesh;
+                                                        objContainer._matIndex = new byte[mesh.triangles.Length / 3];
+                                                        int subMeshesNr = mesh.subMeshCount;
+
+                                                        if (Path.GetFileNameWithoutExtension(obCont._filePath) != "sibenik")
+                                                        {
+                                                            for (int k = 0; k < mesh.triangles.Length / 3; k++)
+                                                            {
+                                                                int materialIdx = -1;
+                                                                int[] hittedTriangle = new int[] { mesh.triangles[k * 3], mesh.triangles[k * 3 + 1], mesh.triangles[k * 3 + 2] };
+
+                                                                for (int l = 0; l < subMeshesNr; l++)
+                                                                {
+                                                                    int[] tr = mesh.GetTriangles(i);
+                                                                    for (int m = 0; m < tr.Length - 2; m++)
+                                                                    {
+                                                                        if (tr[m] == hittedTriangle[0] && tr[m + 1] == hittedTriangle[1] && tr[m + 2] == hittedTriangle[2])
+                                                                        {
+                                                                            materialIdx = l;
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                    if (materialIdx != -1) break;
+                                                                }
+                                                                objContainer._matIndex[k] = (byte)materialIdx;
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            objContainer._matIndex = File.ReadAllBytes(Path.Combine(_rootFolder, "ChurchData.bin"));
+                                                        }
+                                                        
+
+                                                        // File.WriteAllBytes(Path.Combine(_rootFolder, "ModelData.bin"), objContainer._matIndex);
                                                         break;
                                                 }
                                                 break;
@@ -450,7 +515,7 @@ public class Parser : MonoBehaviour
     }
     public int GetIntAfter(string str, string afterStr)
     {
-        string[] words = str.Split(' ');
+        string[] words = str.Replace("[", "").Replace("]", "").Split(' ');
         bool isStrFound = false;
         for (int i = 0; i < words.Length; i++)
         {

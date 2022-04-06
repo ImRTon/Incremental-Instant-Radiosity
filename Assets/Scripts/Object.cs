@@ -6,6 +6,7 @@ using UnityEngine;
 public class Object : MonoBehaviour
 {
     public ObjectContainer _container;
+    public Color _albedo;
     // Start is called before the first frame update
     void Start()
     {
@@ -18,7 +19,7 @@ public class Object : MonoBehaviour
         
     }
 
-    public void SetObject(ObjectContainer container)
+    public virtual void SetObject(ObjectContainer container)
     {
         _container = container;
     }
@@ -64,6 +65,14 @@ public class Object : MonoBehaviour
         else
             texture = Texture2D.whiteTexture;
         return texture;
+    }
+
+    
+
+    public virtual Color GetAlbedo(ref Ray ray, ref RaycastHit hit)
+    {
+        //return Color.cyan;
+        return _container._material._colorKs;
     }
 }
 
@@ -113,5 +122,5 @@ public enum ObShape
 
 public enum MatType
 {
-    Normal, Mirror, Map
+    Normal, Mirror, Map, Obj
 }

@@ -16,7 +16,7 @@ public class Cone : Object
 
     }
 
-    public new void SetObject(ObjectContainer container)
+    public override void SetObject(ObjectContainer container)
     {
         _container = container;
         transform.position = _container._position;
