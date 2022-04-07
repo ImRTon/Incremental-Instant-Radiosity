@@ -2,6 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using OpenCVForUnity.CoreModule;
+using OpenCVForUnity.UnityUtils;
+using OpenCVForUnity.UtilsModule;
+using OpenCVForUnity.ImgprocModule;
 
 public static class RayTraceUtils
 {
@@ -9,180 +13,29 @@ public static class RayTraceUtils
     public static Dictionary<int, Object> _objects = new Dictionary<int, Object>();
     public static Dictionary<int, LightSource> _lightObjects = new Dictionary<int, LightSource>();
 
-    
-    private static Color ToColor(Vector3 v)
+    public static List<Vector2> HaltonSequence(int size)
     {
-        return new Color(v.x, v.y, v.z);
-    }
-
-    private static Vector3 ToVector(Color c)
-    {
-        return new Vector3(c.r, c.g, c.b);
-    }
-    public static Color Tracer(Ray ray, int depth, int scatterCount)
-    {
-        RaycastHit hit;
-        //Physics.queriesHitBackfaces = true;
-        bool isHit = Physics.Raycast(ray, out hit, 100);
-        if (isHit)
+        List<Vector2> haltonList = new List<Vector2>();
+        for (int i = 0; i < size; i++)
         {
-            // if (depth <= 0 || scatterCount<0.00001)
-            //     return new Color(0, 0, 0);
-            // Debug.DrawLine(ray.origin, hit.point, Color.yellow, 30f);
-            Color attenuation = new Color(0, 0, 0);
-            Ray scatteredRay = new Ray();
-            float mult = 1;
-            if (Scatter(ref ray, ref hit, ref attenuation, ref scatteredRay, ref scatterCount, depth, ref mult))
-            {
-                if (mult >= 0.01)
-                    return attenuation + Tracer(scatteredRay, depth - 1, scatterCount);
-                else
-                    return attenuation;
-            }
-            return new Color(0, 0, 0);
+            haltonList.Add(new Vector2(Halton(i, 2), Halton(i, 3)));
         }
-        else
-        {
-            float t = 0.5f * (ray.direction.normalized.y + 1f);
-            return ((1f - t) * Color.white + t * new Color(0.5f, 0.5f, 0.5f)) * 0.3f;
-        }
+        return haltonList;
     }
 
-    public static bool Scatter(ref Ray ray, ref RaycastHit hit, ref Color attenuation, ref Ray scatteredRay, ref int scatterCount, int depth, ref float mult)
+    public static float Halton(int index, float hBase)
     {
-        Object hitObClass = _objects[hit.transform.gameObject.GetHashCode()];
-        switch (hitObClass._container._material._matType)
+        float f = 1;
+        float r = 0;
+        while (index > 0)
         {
-            case MatType.Mirror:
-                {
-                    Vector3 reflected = Vector3.Reflect(ray.direction, hit.normal);
-                    scatteredRay.origin = hit.point;
-                    scatteredRay.direction = reflected;
-                    attenuation = new Color(0, 0, 0);
-                    mult = 1f;
-                    return Vector3.Dot(scatteredRay.direction, hit.normal) > 0;
-                }
-
-            case MatType.Normal:
-                {
-                    Vector3 target = hit.normal.normalized * 0.5f +
-                        new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
-
-                    scatteredRay.origin = hit.point;
-                    scatteredRay.direction = target - hit.point;
-
-                    //attenuation = _objects[hit.collider.gameObject.GetHashCode()].GetAlbedo(ref ray, ref hit);
-                    CheckShadowRay(ref ray, ref hit, ref attenuation);
-                    //attenuation *= Mathf.Pow(0.3f, scatterCount++);
-                    //attenuation *= Mathf.Abs(Mathf.Cos(Vector3.Angle(ray.direction, hit.normal))) * ;
-                    mult = Mathf.Max(0, Mathf.Abs(Mathf.Cos(Vector3.Angle(ray.direction, hit.normal))) / 3.1415926f)
-                        * Vector3.Dot(hit.normal, scatteredRay.direction);
-                    attenuation *= mult;
-                    Vector3.Distance(ray.origin, hit.point);
-                    return true;
-                }
-
-            case MatType.Map:
-            case MatType.Obj:
-                {
-                    Vector3 targetPos = hit.normal.normalized * 0.5f +
-                        new Vector3(Random.Range(-1, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
-
-                    scatteredRay.origin = hit.point;
-                    scatteredRay.direction = targetPos - hit.point;
-
-                    CheckShadowRay(ref ray, ref hit, ref attenuation);
-                    mult = Mathf.Max(0, Mathf.Cos(Vector3.Angle(ray.direction, hit.normal)) / 3.1415926f)
-                        * Vector3.Dot(hit.normal, scatteredRay.direction);
-                    attenuation *= mult;
-                    //attenuation *= Mathf.Pow(0.3f, scatterCount++);
-                    //attenuation *= Mathf.Abs(Mathf.Cos(Vector3.Angle(ray.direction, hit.normal)));
-                    return true;
-                }
-
-            default:
-                Debug.LogError("ERROR, no MatType!");
-                break;
-
+            f /= hBase;
+            r += f * (index % hBase);
+            index = (int)(index / hBase);
         }
-
-        return false;
+        return r;
     }
 
-    public static void CheckShadowRay(ref Ray ray, ref RaycastHit hit, ref Color attenuation)
-    {
-        foreach (int obHash in _lightObjects.Keys)
-        {
-            LightSource lightOb = _lightObjects[obHash];
-            Object hitOb = _objects[hit.transform.gameObject.GetHashCode()];
-            Vector3[] lightSamplePoint = SampleLightPoint(lightOb);
-
-            foreach (Vector3 lightPos in lightSamplePoint)
-            {
-                if (!IsInShadow(lightPos, ref hit))
-                {
-                    Vector3 lightDis = lightPos - hit.point;
-
-                    Vector3 halfDir = Vector3.Normalize(-ray.direction + lightDis.normalized);
-                    float diffuseScalar = Mathf.Max(0, Vector3.Dot(lightDis.normalized, hit.normal));
-                    float specularScalar = Mathf.Pow(Mathf.Max(0, Vector3.Dot(halfDir, hit.normal)), 6);
-
-                    switch (hitOb._container._material._matType)
-                    {
-                        case MatType.Normal:
-                            {
-                                attenuation += lightOb._lightSource.color * (ToColor(diffuseScalar * ToVector(hitOb._container._material._colorKd))
-                                    + ToColor(specularScalar * ToVector(hitOb._container._material._colorKs )));
-                            }
-                            break;
-
-                        case MatType.Mirror:
-                            {
-                                // None
-                            }
-                            break;
-
-                        case MatType.Map:
-                            {
-                                Texture2D texture = (Texture2D)hit.transform.GetComponent<MeshRenderer>().material.GetTexture("_MainTex");
-                                //var bytes = texture.EncodeToPNG();
-                                //File.WriteAllBytes(Path.Combine("D://", "texture.png"), bytes);
-                                //texture = (Texture2D)hit.transform.GetComponent<MeshRenderer>().material.GetTexture("_BumpMap");
-                                //bytes = texture.EncodeToPNG();
-                                //File.WriteAllBytes(Path.Combine("D://", "normal.png"), bytes);
-                                Vector2 pixUV = hit.textureCoord;
-                                Vector3 mapColor =ToVector(texture.GetPixel((int)(pixUV.x * texture.width), (int)(pixUV.y * texture.height)));
-                                attenuation += lightOb._lightSource.color * ToColor(diffuseScalar * mapColor);
-                            }
-                            break;
-
-                        case MatType.Obj:
-                            {
-                                int triangleIndex = hit.triangleIndex;
-
-                                Material[] mats = hit.transform.GetComponent<MeshRenderer>().sharedMaterials;
-                                Color mapColor = new Color(0, 0, 0);
-                                Obj meshObClass = (Obj)_objects[hit.transform.gameObject.GetHashCode()];
-                                Texture2D matTex = mats[meshObClass._matIndex[triangleIndex]].mainTexture as Texture2D;
-                                if (matTex != null)
-                                {
-                                    mapColor = matTex.GetPixelBilinear(hit.textureCoord.x, hit.textureCoord.y) * mats[meshObClass._matIndex[triangleIndex]].color;
-                                }
-                                else if (mats[meshObClass._matIndex[triangleIndex]].color != null)
-                                    mapColor = mats[meshObClass._matIndex[triangleIndex]].color;
-                                attenuation += lightOb._lightSource.color * ToColor(diffuseScalar * ToVector(mapColor));
-                            }
-                            break;
-
-                        default:
-                            Debug.LogError("ERROR, no MatType");
-                            break;
-                    }
-                }
-            }
-            attenuation /= (float)lightSamplePoint.Length;
-        }
-    }
 
     private static Vector3[] SampleLightPoint(LightSource lightObClass)
     {
@@ -256,5 +109,93 @@ public static class RayTraceUtils
             return ambientWeight;
         }
         return 0.0f;
+    }
+}
+
+public static class Voronoi
+{
+    public static int width = 250;
+    public static int height = 250;
+    public static Mat _voronoiDiagram;
+    public static OpenCVForUnity.CoreModule.Rect _rect;
+    public static Subdiv2D _subdiv2D;
+    public static List<Vector2> _points;
+
+    public static void Init()
+    {
+        _voronoiDiagram = new Mat(height, width, CvType.CV_8U);
+        _rect = new OpenCVForUnity.CoreModule.Rect(0, 0, width, height);
+        _subdiv2D = new Subdiv2D(_rect);
+    }
+
+    public static void SetPointFromHalton(int size)
+    {
+        List<Vector2> haltonList = RayTraceUtils.HaltonSequence(size);
+        for (int i = 0; i < size; i++)
+        {
+            _subdiv2D.insert(new Point(haltonList[i].x * width, haltonList[i].y * height));
+        }
+        _points = haltonList;
+    }
+
+    public static void Draw()
+    {
+        _voronoiDiagram.setTo(Scalar.all(0));
+        DrawVoronoi();
+        DrawDelaunay();
+        DrawPoints();
+    }
+
+    public static void DrawDelaunay()
+    {
+        MatOfFloat6 triangleMatList = new MatOfFloat6();
+        _subdiv2D.getTriangleList(triangleMatList);
+        float[] pointArray = triangleMatList.toArray();
+
+        Debug.Log("Draw " + pointArray.Length / 2 + "lines.");
+        for (int i = 0; i < pointArray.Length / 6; i++)
+        {
+
+            Point p0 = new Point(pointArray[i * 6 + 0], pointArray[i * 6 + 1]);
+            Point p1 = new Point(pointArray[i * 6 + 2], pointArray[i * 6 + 3]);
+            Point p2 = new Point(pointArray[i * 6 + 4], pointArray[i * 6 + 5]);
+
+            if (!(p0.x < 0 || p0.y < 0 || p0.x > width || p0.y > height ||
+                p1.x < 0 || p1.y < 0 || p1.x > width || p1.y > height ||
+                p2.x < 0 || p2.y < 0 || p2.x > width || p2.y > height))
+            {
+                Imgproc.line(_voronoiDiagram, p0, p1, new Scalar(128), 1, Imgproc.LINE_AA, 0);
+                Imgproc.line(_voronoiDiagram, p1, p2, new Scalar(128), 1, Imgproc.LINE_AA, 0);
+                Imgproc.line(_voronoiDiagram, p2, p0, new Scalar(128), 1, Imgproc.LINE_AA, 0);
+            }
+
+        }
+    }
+
+    public static void DrawPoints()
+    {
+        Debug.Log("Draw " + _points.Count + "points.");
+        for (int i = 0; i < _points.Count; i++)
+        {
+            Imgproc.circle(_voronoiDiagram, new Point(_points[i].x * width, _points[i].y * height), 5, new Scalar(255, 255, 255), -1, 8, 0);
+        }
+    }
+    
+    public static void DrawVoronoi()
+    {
+        List<MatOfPoint2f> facets = new List<MatOfPoint2f>();
+        MatOfPoint2f centPoints = new MatOfPoint2f();
+        _subdiv2D.getVoronoiFacetList(new MatOfInt(), facets, centPoints);
+
+        List<MatOfPoint> ifacets = new List<MatOfPoint>();
+        
+        for (int i = 0; i < facets.Count; i++)
+        {
+            
+            MatOfPoint ifacet = new MatOfPoint();
+            ifacet.fromArray(facets[i].toArray());
+            Scalar color = new Scalar(i * 5 % 255);
+            Imgproc.fillConvexPoly(_voronoiDiagram, ifacet, color);
+        }
     }
 }

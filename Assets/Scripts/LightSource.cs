@@ -8,6 +8,7 @@ public class LightSource : MonoBehaviour
     public int _nSamples = 1;
     public Vector2 _area = Vector2.one;
     public LightType _lightType;
+    public List<VPL> VPLs = new List<VPL>();
     // Start is called before the first frame update
     private void Awake()
     {

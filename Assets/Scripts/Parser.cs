@@ -427,7 +427,7 @@ public class Parser : MonoBehaviour
                                                         }
                                                         else
                                                         {
-                                                            objContainer._matIndex = File.ReadAllBytes(Path.Combine(_rootFolder, "ChurchData.bin"));
+                                                            // objContainer._matIndex = File.ReadAllBytes(Path.Combine(_rootFolder, "ChurchData.bin"));
                                                         }
                                                         
 
