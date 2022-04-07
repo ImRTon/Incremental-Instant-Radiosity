@@ -120,6 +120,11 @@ public static class Voronoi
     public static OpenCVForUnity.CoreModule.Rect _rect;
     public static Subdiv2D _subdiv2D;
     public static List<Vector2> _points;
+    public enum LightType
+    {
+        SPOT, POINT, AREA
+    }
+    public static LightType _lightType;
 
     public static void Init()
     {
@@ -152,7 +157,6 @@ public static class Voronoi
         _subdiv2D.getTriangleList(triangleMatList);
         float[] pointArray = triangleMatList.toArray();
 
-        Debug.Log("Draw " + pointArray.Length / 2 + "lines.");
         for (int i = 0; i < pointArray.Length / 6; i++)
         {
 
@@ -174,10 +178,9 @@ public static class Voronoi
 
     public static void DrawPoints()
     {
-        Debug.Log("Draw " + _points.Count + "points.");
         for (int i = 0; i < _points.Count; i++)
         {
-            Imgproc.circle(_voronoiDiagram, new Point(_points[i].x * width, _points[i].y * height), 5, new Scalar(255, 255, 255), -1, 8, 0);
+            Imgproc.circle(_voronoiDiagram, new Point(_points[i].x * width, _points[i].y * height), 3, new Scalar(255), -1, 8, 0);
         }
     }
     
@@ -194,8 +197,32 @@ public static class Voronoi
             
             MatOfPoint ifacet = new MatOfPoint();
             ifacet.fromArray(facets[i].toArray());
-            Scalar color = new Scalar(i * 5 % 255);
+            Scalar color = new Scalar(i * 2 % 255);
             Imgproc.fillConvexPoly(_voronoiDiagram, ifacet, color);
         }
+    }
+
+    public static List<Vector3> WarpVoronois()
+    {
+        List<Vector3> vecs = new List<Vector3>();
+        switch (_lightType)
+        {
+            case LightType.SPOT:
+                {
+                    
+                }
+                break;
+            case LightType.POINT:
+                {
+
+                }
+                break;
+            case LightType.AREA:
+                {
+
+                }
+                break;
+        }
+        return vecs;
     }
 }

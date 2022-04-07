@@ -20,17 +20,19 @@ public class RayTracer : MonoBehaviour
     public int width = 250;
     public int height = 250;
     
-    
+    private Texture2D _rImgTexture;
+
+
     // Start is called before the first frame update
     void Start()
     {
         Init();
         Voronoi.Init();
-        List<Vector2> vec2s = RayTraceUtils.HaltonSequence(10);
-        for (int i = 0; i < vec2s.Count; i++)
+        _rImgTexture = new Texture2D(Voronoi.width, Voronoi.height, TextureFormat.RGBA32, false);
+        /*for (int i = 0; i < vec2s.Count; i++)
         {
             Debug.Log(vec2s[i].ToString("F4"));
-        }
+        }*/
         SetMat2Texture(_voronoiDiagram, _diagram);
 
     }
@@ -44,7 +46,7 @@ public class RayTracer : MonoBehaviour
 
 
         // UI update
-        Voronoi.SetPointFromHalton(20);
+        Voronoi.SetPointFromHalton(64);
         Voronoi.Draw();
         SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
     }
@@ -69,9 +71,8 @@ public class RayTracer : MonoBehaviour
 
     private void SetMat2Texture(Mat img, UnityEngine.UI.RawImage rawImage)
     {
-        Texture2D texture = new Texture2D(img.cols(), img.rows(), TextureFormat.RGBA32, false);
-        Utils.matToTexture2D(img, texture);
-        _diagram.texture = texture;
+        Utils.matToTexture2D(img, _rImgTexture);
+        _diagram.texture = _rImgTexture;
     }
 
     public void ResetScene()
