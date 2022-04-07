@@ -131,6 +131,7 @@ public static class Voronoi
         _voronoiDiagram = new Mat(height, width, CvType.CV_8U);
         _rect = new OpenCVForUnity.CoreModule.Rect(0, 0, width, height);
         _subdiv2D = new Subdiv2D(_rect);
+        _lightType = LightType.SPOT;
     }
 
     public static void SetPointFromHalton(int size)
@@ -149,6 +150,7 @@ public static class Voronoi
         DrawVoronoi();
         DrawDelaunay();
         DrawPoints();
+        WarpVoronois();
     }
 
     public static void DrawDelaunay()
@@ -209,7 +211,18 @@ public static class Voronoi
         {
             case LightType.SPOT:
                 {
-                    
+                    for (int i = 0; i < _points.Count; i++)
+                    {
+                        float a = _points[i].x * 3.14159265f * 2.0f;
+                        float l = Mathf.Sqrt(_points[i].y);
+                        Vector3 resVec = new Vector3(Mathf.Cos(a) * l, Mathf.Sin(a) * l, 0.0f);
+                        l = Vector3.Dot(resVec, resVec);
+                        if (l >= 1.0f)
+                            resVec.z = 0;
+                        else
+                            resVec.z = Mathf.Sqrt(1.0f - l);
+                        Debug.DrawRay(new Vector3(0, 0, 0), resVec, Color.red, 30f);
+                    }
                 }
                 break;
             case LightType.POINT:
