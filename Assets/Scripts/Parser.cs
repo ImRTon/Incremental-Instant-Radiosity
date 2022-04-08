@@ -13,6 +13,8 @@ public class Parser : MonoBehaviour
     public int _resolutionX = 1600;
     public int _resolutionY = 900;
 
+    public bool _isParseDone = false;
+
 
     public Camera _camera;
     public RawImage _canvas;
@@ -157,6 +159,7 @@ public class Parser : MonoBehaviour
                                                 {
                                                     case "AttributeEnd":
                                                         isObSettingEnd = true;
+                                                        _isParseDone = true;
                                                         break;
                                                     case "LightSource":
                                                         obCont._obType = ObjectType.Light;
@@ -206,10 +209,16 @@ public class Parser : MonoBehaviour
                                                                     //obLight._lightSource.areaSize = obLight._area;
                                                                     l++;
                                                                     break;
+                                                                case "rotate":
+                                                                    List<float> rotVecs = GetNums(obWords[l + 1]);
+                                                                    ob.transform.Rotate(new Vector3(rotVecs[1], rotVecs[2], rotVecs[3]), rotVecs[0]);
+                                                                    l++;
+                                                                    break;
                                                             }
                                                             k = l;
                                                         }
                                                         RayTraceUtils._lightObjects.Add(ob.GetHashCode(), obLight);
+                                                        
                                                         break;
 
                                                     case "Translate":
@@ -451,6 +460,7 @@ public class Parser : MonoBehaviour
 
             
         }
+        
     }
 
     public List<string> SplitStrWithSpc(string str)

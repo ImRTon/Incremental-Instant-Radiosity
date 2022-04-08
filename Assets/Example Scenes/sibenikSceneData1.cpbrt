@@ -14,7 +14,7 @@ WorldBegin
 
 	#point light
 	AttributeBegin
-		LightSource "point" "color L" [15 15 15] "point from" [0 9.2 0]
+		LightSource "point" "color L" [15 15 15] "point from" [0 9.2 0] "rotate" [90 1 0 0]
 	AttributeEnd
 
 	#shpere

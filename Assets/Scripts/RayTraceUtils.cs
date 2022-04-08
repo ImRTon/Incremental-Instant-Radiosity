@@ -12,6 +12,7 @@ public static class RayTraceUtils
     public const int MAX_DEPTH = 10;
     public static Dictionary<int, Object> _objects = new Dictionary<int, Object>();
     public static Dictionary<int, LightSource> _lightObjects = new Dictionary<int, LightSource>();
+    public static Dictionary<int, VPL> _VPLs = new Dictionary<int, VPL>();
 
     public static List<Vector2> HaltonSequence(int size)
     {
@@ -213,6 +214,7 @@ public static class Voronoi
                 {
                     for (int i = 0; i < _points.Count; i++)
                     {
+                        // warp 2d points to 3d points
                         float a = _points[i].x * 3.14159265f * 2.0f;
                         float l = Mathf.Sqrt(_points[i].y);
                         Vector3 resVec = new Vector3(Mathf.Cos(a) * l, Mathf.Sin(a) * l, 0.0f);
@@ -222,12 +224,26 @@ public static class Voronoi
                         else
                             resVec.z = Mathf.Sqrt(1.0f - l);
                         Debug.DrawRay(new Vector3(0, 0, 0), resVec, Color.red, 30f);
+                        vecs.Add(resVec);
                     }
                 }
                 break;
             case LightType.POINT:
                 {
-
+                    // warp 2d points to 3d sphere points
+                    for (int i = 0; i < _points.Count; i++)
+                    {
+                        float a = _points[i].x * 3.14159265f * 2.0f;
+                        float l = Mathf.Sqrt(_points[i].y);
+                        Vector3 resVec = new Vector3(Mathf.Cos(a) * l, Mathf.Sin(a) * l, 0.0f);
+                        l = Vector3.Dot(resVec, resVec);
+                        if (l >= 1.0f)
+                            resVec.z = 0;
+                        else
+                            resVec.z = Mathf.Sqrt(1.0f - l);
+                        Debug.DrawRay(new Vector3(0, 0, 0), resVec, Color.red, 30f);
+                        vecs.Add(resVec);
+                    }
                 }
                 break;
             case LightType.AREA:
@@ -238,4 +254,6 @@ public static class Voronoi
         }
         return vecs;
     }
+
+    
 }

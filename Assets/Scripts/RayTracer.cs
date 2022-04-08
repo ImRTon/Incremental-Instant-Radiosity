@@ -15,12 +15,16 @@ public class RayTracer : MonoBehaviour
     public UnityEngine.UI.RawImage _diagram;
     private Texture2D _texture;
     public UnityEngine.UI.Toggle _SaveImgToggle;
+    public GameObject VPLPrefab;
+    public LightSource _lightSource;
 
     public Mat _voronoiDiagram;
     public int width = 250;
     public int height = 250;
     
     private Texture2D _rImgTexture;
+
+    private bool _isRender = false;
 
 
     // Start is called before the first frame update
@@ -40,20 +44,54 @@ public class RayTracer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // Move lights
+        if (_parser._isParseDone)
+        {
+            _parser._isParseDone = false;
+            Init();
+            Voronoi.Init();
+            Voronoi.SetPointFromHalton(64);
+            _isRender = true;
+            foreach (int obHash in RayTraceUtils._lightObjects.Keys)
+            {
+                _lightSource = RayTraceUtils._lightObjects[obHash];
+            }
+        }
 
-        // VPL process
+        if (_isRender)
+        {
+            // Move lights
+
+            // VPL process
 
 
-        // UI update
-        Voronoi.SetPointFromHalton(64);
-        Voronoi.Draw();
-        SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
+            // UI update
+            Voronoi.Draw();
+            SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
+            CastVPLsOnScene(Voronoi.WarpVoronois());
+        }
     }
 
     public void RadiosityMaster()
     {
         
+    }
+    public List<GameObject> CastVPLsOnScene(List<Vector3> dir)
+    {
+        List<GameObject> VPLs = new List<GameObject>();
+        for (int i = 0; i < dir.Count; i++)
+        {
+            GameObject VPLOb = Instantiate(VPLPrefab);
+            VPL vpl = VPLOb.GetComponent<VPL>();
+            RayTraceUtils._VPLs.Add(VPLOb.GetHashCode(), vpl);
+            Vector3 lightDir = _lightSource.transform.forward;
+            RaycastHit hit;
+            if (Physics.Raycast(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), out hit))
+            {
+                Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green);
+            }
+            VPLs.Add(VPLOb);
+        }
+        return VPLs;
     }
 
     private void SetImgTexture(Texture2D texture2D)
