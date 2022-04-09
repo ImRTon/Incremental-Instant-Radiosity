@@ -151,6 +151,7 @@ public static class Voronoi
     public static Subdiv2D _subdiv2D;
     public static List<Vector2> _points;
     public static int _sampleCount = 10;
+    public static List<Vector3> _points2Cast;
     public enum LightType
     {
         SPOT, POINT, AREA
@@ -159,6 +160,7 @@ public static class Voronoi
 
     public static void Init()
     {
+        _points2Cast = new List<Vector3>();
         _voronoiDiagram = new Mat(height, width, CvType.CV_8U);
         _rect = new OpenCVForUnity.CoreModule.Rect(0, 0, width, height);
         _subdiv2D = new Subdiv2D(_rect);
@@ -242,17 +244,38 @@ public static class Voronoi
         }
     }
 
-    public static List<Vector3> WarpVoronois()
+    public static void DrawEdgePnts()
+    {
+        MatOfFloat4 edgePnts = new MatOfFloat4();
+        _subdiv2D.getEdgeList(edgePnts);
+        float[] pointArray = edgePnts.toArray();
+
+        for (int i = 0; i < pointArray.Length / 4; i++)
+        {
+
+            Point p0 = new Point(pointArray[i * 4 + 0], pointArray[i * 4 + 1]);
+            Point p1 = new Point(pointArray[i * 4 + 2], pointArray[i * 4 + 3]);
+
+            if (!(p0.x < 0 || p0.y < 0 || p0.x > width || p0.y > height ||
+                p1.x < 0 || p1.y < 0 || p1.x > width || p1.y > height))
+            {
+                Imgproc.line(_voronoiDiagram, p0, p1, new Scalar(200), 2, Imgproc.LINE_AA, 0);
+            }
+
+        }
+    }
+
+    public static List<Vector3> WarpVoronois(List<Vector2> point2Cast)
     {
         List<Vector3> vecs = new List<Vector3>();
         switch (_lightType)
         {
             case LightType.SPOT:
                 {
-                    for (int i = 0; i < _points.Count; i++)
+                    for (int i = 0; i < point2Cast.Count; i++)
                     {
                         // Warp 2D Vector to 3d sphere
-                        Vector2 pnt = new Vector2(_points[i].x - 0.5f, _points[i].y -0.5f);
+                        Vector2 pnt = new Vector2(point2Cast[i].x - 0.5f, point2Cast[i].y -0.5f);
                         float len = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, Vector3.one), pnt).magnitude;
                         float r = pnt.magnitude;
                         float cos = pnt.x / r;
@@ -268,10 +291,10 @@ public static class Voronoi
             case LightType.POINT:
                 {
                     // warp 2d points to 3d sphere points
-                    for (int i = 0; i < _points.Count; i++)
+                    for (int i = 0; i < point2Cast.Count; i++)
                     {
                         // Warp 2D Vector to 3d sphere
-                        Vector2 pnt = new Vector2(_points[i].x - 0.5f, _points[i].y - 0.5f);
+                        Vector2 pnt = new Vector2(point2Cast[i].x - 0.5f, point2Cast[i].y - 0.5f);
                         float len = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, Vector3.one), pnt).magnitude;
                         float r = pnt.magnitude;
                         float cos = pnt.x / r;
@@ -301,20 +324,84 @@ public static class Voronoi
 
     private static void FindBestPoint()
     {
+        /*
+         Ugly as hell, but it works.
+        */
         List<MatOfPoint2f> facets = new List<MatOfPoint2f>();
         MatOfPoint2f centPoints = new MatOfPoint2f();
         _subdiv2D.getVoronoiFacetList(new MatOfInt(), facets, centPoints);
 
+        SortedList<float, int> sortedfacetsDistances = new SortedList<float, int>();
         List<MatOfPoint> ifacets = new List<MatOfPoint>();
+        //SortedDictionary
+        List<List<Point>> facetsPnts = new List<List<Point>>();
+        List<SortedList<float, int>> sortedfacetDistancesList = new List<SortedList<float, int>>();
 
         for (int i = 0; i < facets.Count; i++)
         {
+            SortedList<float, int> sortedfacetDistances = new SortedList<float, int>(); //在第 i 個 facet 的 point 之平均距離
+            List<Point> facetsPoints = facets[i].toList();
+            facetsPnts.Add(facetsPoints);
+            for (int k = 0; k < facetsPoints.Count; k++)
+            {
+                /*if (facetsPoints[k].x == 0 || facetsPoints[k].y == 0 || facetsPoints[k].x == width || facetsPoints[k].y == height)
+                    continue;*/
+                List<float> distances = new List<float>();
+                SortedList<float, int> sortedDistances = new SortedList<float, int>();
+                for (int j = 0; j < _points.Count; j++)
+                {
+                    try
+                    {
+                        sortedDistances.Add(Vector2.Distance(_points[j], new Vector2((float)(facetsPoints[k].x), (float)facetsPoints[k].y)), j);
+                    }
+                    catch (System.ArgumentException)
+                    {
+                        continue;
+                    }
+                }
+                float avDis = 0;
+                for (int j = 0; j < 3; j++)
+                {
+                    Debug.Log("Dis sort:" + j + ", " + sortedDistances.Keys[j]);
+                    avDis += sortedDistances.Keys[j] / 3.0f;
+                }
+                sortedfacetDistances.Add(avDis, k);
+            }
+            sortedfacetDistancesList.Add(sortedfacetDistances);
 
-            MatOfPoint ifacet = new MatOfPoint();
-            ifacet.fromArray(facets[i].toArray());
-            Scalar color = new Scalar(i * 3 % 255);
-            Imgproc.fillConvexPoly(_voronoiDiagram, ifacet, color);
+            sortedfacetsDistances.Add(sortedfacetDistances.Keys[sortedfacetDistances.Count - 1], i);
         }
+
+        List<Vector2> points2Cast = new List<Vector2>();
+
+        for (int i = 0; i < Voronoi._sampleCount - _points.Count; i++)
+        {
+            int idx = sortedfacetsDistances.Count - 1;
+            int facetsIdx = sortedfacetsDistances.Values[idx];
+            int pointIdx = sortedfacetDistancesList[facetsIdx].Values[sortedfacetDistancesList[facetsIdx].Count - 1];
+            Vector2 newPnt = new Vector2((float)facetsPnts[facetsIdx][pointIdx].x, (float)facetsPnts[facetsIdx][pointIdx].y);
+            while(PntIsInList(newPnt, _points))
+            {
+                idx -= 1;
+                facetsIdx = sortedfacetsDistances.Values[idx];
+                pointIdx = sortedfacetDistancesList[facetsIdx].Values[sortedfacetDistancesList[facetsIdx].Count - 1];
+                newPnt.x = (float)facetsPnts[facetsIdx][pointIdx].x;
+                newPnt.y = (float)facetsPnts[facetsIdx][pointIdx].y;
+            }
+            _points.Add(newPnt);
+            points2Cast.Add(newPnt);
+        }
+        _points2Cast = WarpVoronois(points2Cast);
+    }
+    
+    private static bool PntIsInList(Vector2 pnt, List<Vector2> pnts)
+    {
+        for (int i = 0; i < pnts.Count; i++)
+        {
+            if (pnts[i] == pnt)
+                return true;
+        }
+        return false;
     }
 
     public static void UpdatePoints(List<Vector2> points)
@@ -327,6 +414,6 @@ public static class Voronoi
         {
             _subdiv2D.insert(new Point(_points[i].x * width, _points[i].y * height));
         }
-        
+        FindBestPoint();
     }
 }

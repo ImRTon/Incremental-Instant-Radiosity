@@ -57,7 +57,7 @@ public class RayTracer : MonoBehaviour
             }
             Voronoi.Draw();
             SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
-            FirstCastVPLsOnScene(Voronoi.WarpVoronois());
+            CastVPLsOnScene(Voronoi.WarpVoronois(Voronoi._points));
         }
 
         if (_isRender)
@@ -70,6 +70,8 @@ public class RayTracer : MonoBehaviour
 
             // UI update
             Voronoi.UpdatePoints(CastVPLsBack());
+            if (Voronoi._points2Cast.Count > 0)
+                CastVPLsOnScene(Voronoi._points2Cast);
             Voronoi.Draw();
             //Voronoi.DrawPoints(CastVPLsBack());
             SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
@@ -82,7 +84,7 @@ public class RayTracer : MonoBehaviour
     {
         
     }
-    public void FirstCastVPLsOnScene(List<Vector3> dir)
+    public void CastVPLsOnScene(List<Vector3> dir)
     {
         for (int i = 0; i < dir.Count; i++)
         {
