@@ -63,13 +63,15 @@ public class RayTracer : MonoBehaviour
         if (_isRender)
         {
             // Move lights
-            _lightSource.transform.Rotate(Vector3.up, Time.deltaTime * 20);
+            _lightSource.transform.Rotate(Vector3.up, Time.deltaTime * 5);
 
             // VPL process
             CheckLightVisibility();
 
             // UI update
+            Voronoi.UpdatePoints(CastVPLsBack());
             Voronoi.Draw();
+            //Voronoi.DrawPoints(CastVPLsBack());
             SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
             
 
@@ -90,7 +92,8 @@ public class RayTracer : MonoBehaviour
             RaycastHit hit;
             if (Physics.Raycast(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), out hit))
             {
-                Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green);
+                Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green, 30f);
+                //Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), Color.blue, 30f);
                 VPLOb.transform.position = hit.point;
                 vpl.SetLightIntensity(1 / Voronoi._sampleCount);
             }
@@ -122,18 +125,28 @@ public class RayTracer : MonoBehaviour
         }
     }
 
-    private void CastVPLsBack()
+    private List<Vector2> CastVPLsBack()
     {
         List<Vector2> projectedPnts = new List<Vector2>();
         foreach (int obHash in RayTraceUtils._VPLs.Keys)
         {
             VPL vpl = RayTraceUtils._VPLs[obHash];
             Vector3 projectedPnt = (vpl.GetPos() - _lightSource.transform.position).normalized;
-            float angleXY = Vector3.SignedAngle(_lightSource.transform.right, projectedPnt, _lightSource.transform.forward);
+            // Method own
+            /*float angleXY = Vector3.SignedAngle(_lightSource.transform.right, Vector3.ProjectOnPlane(projectedPnt, _lightSource.transform.forward), _lightSource.transform.forward);
             Vector3 projected2DPnt = Quaternion.AngleAxis(angleXY, _lightSource.transform.forward) * _lightSource.transform.right;
             float angleXZ = Vector3.Angle(projected2DPnt, projectedPnt);
             float cos = Mathf.Cos(angleXY * Mathf.Deg2Rad);
             float sin = Mathf.Sin(angleXY * Mathf.Deg2Rad);
+            Vector2 resVec = new Vector2(cos, sin);
+            */
+            // Method api
+            Vector2 resVec = new Vector2();
+            Vector3 localDir = _lightSource.transform.InverseTransformDirection(projectedPnt).normalized;
+            resVec.x = localDir.x;
+            resVec.y = localDir.y;
+            float angleXZ = Vector3.Angle(new Vector3(resVec.x, resVec.y, 0), localDir);
+            Debug.Log("Angle:" + angleXZ);
             switch (Voronoi._lightType)
             {
                 case Voronoi.LightType.SPOT:
@@ -143,11 +156,15 @@ public class RayTracer : MonoBehaviour
                     angleXZ /= 180.0f;
                     break;
             }
-            Vector2 resVec = new Vector2(cos , sin);
-            resVec = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, Vector3.one), resVec);
-            resVec *= angleXZ;
+            resVec = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, new Vector3(1, 1, 1)), resVec);
+            Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(new Vector3(resVec.x, resVec.y, 0)), Color.blue, 30f);
+            resVec *= (1.0f - angleXZ);
+            Debug.Log("point:" + resVec.ToString("F4"));
+            resVec.x += 0.5f;
+            resVec.y += 0.5f;
             projectedPnts.Add(resVec);
         }
+        return projectedPnts;
     }
 
     private void SetImgTexture(Texture2D texture2D)

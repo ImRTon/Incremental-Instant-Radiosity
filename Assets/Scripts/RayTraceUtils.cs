@@ -118,9 +118,27 @@ public static class RayTraceUtils
         var e = bounds.extents;
         var v = aDirection;
         float y = e.x * v.y / v.x;
+        Vector2 res = new Vector2(e.x, y);
         if (Mathf.Abs(y) < e.y)
-            return new Vector2(e.x, y);
-        return new Vector2(e.y * v.x / v.y, e.y);
+        {
+            if (aDirection.x < 0 && res.x > 0 || aDirection.x > 0 && res.x < 0)
+                res.x = -res.x;
+            if (aDirection.y < 0 && res.y > 0 || aDirection.y > 0 && res.y < 0)
+                res.y = -res.y;
+            return res;
+        }
+        res = new Vector2(e.y * v.x / v.y, e.y);
+        if (aDirection.x < 0 && res.x > 0 || aDirection.x > 0 && res.x < 0)
+            res.x = -res.x;
+        if (aDirection.y < 0 && res.y > 0 || aDirection.y > 0 && res.y < 0)
+            res.y = -res.y;
+        return res;
+    }
+
+    public static float PointOnBoundsLen(int boundWidth, int boundHeight, Vector2 center, Vector2 aDirection)
+    {
+        Vector2 upLine = new Vector2(-boundWidth / 2.0f, boundHeight);
+        return 0f;
     }
 }
 
@@ -163,7 +181,6 @@ public static class Voronoi
         DrawVoronoi();
         DrawDelaunay();
         DrawPoints();
-        WarpVoronois();
     }
 
     public static void DrawDelaunay()
@@ -198,6 +215,14 @@ public static class Voronoi
             Imgproc.circle(_voronoiDiagram, new Point(_points[i].x * width, _points[i].y * height), 3, new Scalar(255), -1, 8, 0);
         }
     }
+
+    public static void DrawPoints(List<Vector2> points)
+    {
+        for (int i = 0; i < points.Count; i++)
+        {
+            Imgproc.circle(_voronoiDiagram, new Point(points[i].x * width, points[i].y * height), 5, new Scalar(100), -1, 8, 0);
+        }
+    }
     
     public static void DrawVoronoi()
     {
@@ -212,7 +237,7 @@ public static class Voronoi
             
             MatOfPoint ifacet = new MatOfPoint();
             ifacet.fromArray(facets[i].toArray());
-            Scalar color = new Scalar(i * 2 % 255);
+            Scalar color = new Scalar(i * 3 % 255);
             Imgproc.fillConvexPoly(_voronoiDiagram, ifacet, color);
         }
     }
@@ -233,7 +258,7 @@ public static class Voronoi
                         float cos = pnt.x / r;
                         float sin = pnt.y / r;
                         Vector3 resVec = new Vector3(cos, sin, 0.0f);
-                        float angle = r / len * 90; // 0~90
+                        float angle = (1.0f - r / len) * 90.0f; // 0~90
                         Vector2 pntVert = -Vector2.Perpendicular(pnt);
                         resVec = Quaternion.AngleAxis(angle, new Vector3(pntVert.x, pntVert.y, 0)) * resVec;
                         vecs.Add(resVec);
@@ -252,7 +277,7 @@ public static class Voronoi
                         float cos = pnt.x / r;
                         float sin = pnt.y / r;
                         Vector3 resVec = new Vector3(cos, sin, 0.0f);
-                        float angle = r / len * 180; // 0~180
+                        float angle = (1.0f - r / len) * 180; // 0~180
                         Vector2 pntVert = -Vector2.Perpendicular(pnt);
                         resVec = Quaternion.AngleAxis(angle, new Vector3(pntVert.x, pntVert.y, 0)) * resVec;
                         vecs.Add(resVec);
@@ -268,5 +293,40 @@ public static class Voronoi
         return vecs;
     }
 
-    
+    public static void MakeNewVoronois()
+    {
+        _subdiv2D.Dispose();
+        _subdiv2D = new Subdiv2D(_rect);
+    }
+
+    private static void FindBestPoint()
+    {
+        List<MatOfPoint2f> facets = new List<MatOfPoint2f>();
+        MatOfPoint2f centPoints = new MatOfPoint2f();
+        _subdiv2D.getVoronoiFacetList(new MatOfInt(), facets, centPoints);
+
+        List<MatOfPoint> ifacets = new List<MatOfPoint>();
+
+        for (int i = 0; i < facets.Count; i++)
+        {
+
+            MatOfPoint ifacet = new MatOfPoint();
+            ifacet.fromArray(facets[i].toArray());
+            Scalar color = new Scalar(i * 3 % 255);
+            Imgproc.fillConvexPoly(_voronoiDiagram, ifacet, color);
+        }
+    }
+
+    public static void UpdatePoints(List<Vector2> points)
+    {
+        _points.Clear();
+        _points.AddRange(points);
+        //MakeNewVoronois();
+        _subdiv2D.initDelaunay(_rect);
+        for (int i = 0; i < _points.Count; i++)
+        {
+            _subdiv2D.insert(new Point(_points[i].x * width, _points[i].y * height));
+        }
+        
+    }
 }
