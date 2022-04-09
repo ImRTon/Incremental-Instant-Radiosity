@@ -94,7 +94,7 @@ public class RayTracer : MonoBehaviour
             RaycastHit hit;
             if (Physics.Raycast(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), out hit))
             {
-                Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green, 30f);
+                Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green, 3f);
                 //Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), Color.blue, 30f);
                 VPLOb.transform.position = hit.point;
                 vpl.SetLightIntensity(1 / Voronoi._sampleCount);
@@ -159,7 +159,7 @@ public class RayTracer : MonoBehaviour
                     break;
             }
             resVec = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, new Vector3(1, 1, 1)), resVec);
-            Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(new Vector3(resVec.x, resVec.y, 0)), Color.blue, 30f);
+            Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(new Vector3(resVec.x, resVec.y, 0)), Color.blue);
             resVec *= (1.0f - angleXZ);
             Debug.Log("point:" + resVec.ToString("F4"));
             resVec.x += 0.5f;

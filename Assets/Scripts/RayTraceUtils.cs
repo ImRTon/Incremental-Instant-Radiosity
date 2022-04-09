@@ -352,7 +352,8 @@ public static class Voronoi
                 {
                     try
                     {
-                        sortedDistances.Add(Vector2.Distance(_points[j], new Vector2((float)(facetsPoints[k].x), (float)facetsPoints[k].y)), j);
+                        Vector2 pointOnBound = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, new Vector3(1, 1, 1)), new Vector2((float)(facetsPoints[k].x / width) - 0.5f, (float)(facetsPoints[k].y / height) - 0.5f));
+                        sortedDistances.Add(Vector2.Distance(_points[j], new Vector2(pointOnBound.x + 0.5f, pointOnBound.y + 0.5f)), j);
                     }
                     catch (System.ArgumentException)
                     {
@@ -369,7 +370,19 @@ public static class Voronoi
             }
             sortedfacetDistancesList.Add(sortedfacetDistances);
 
-            sortedfacetsDistances.Add(sortedfacetDistances.Keys[sortedfacetDistances.Count - 1], i);
+            bool isInsert = true;
+            int idx = sortedfacetDistances.Count - 1;
+            do
+            {
+                try
+                {
+                    sortedfacetsDistances.Add(sortedfacetDistances.Keys[idx--], i);
+                }
+                catch (System.ArgumentException)
+                {
+                    isInsert = false;
+                }
+            } while (!isInsert && idx >= 0);
         }
 
         List<Vector2> points2Cast = new List<Vector2>();
