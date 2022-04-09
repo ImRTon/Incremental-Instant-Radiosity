@@ -17,6 +17,7 @@ public class RayTracer : MonoBehaviour
     public UnityEngine.UI.Toggle _SaveImgToggle;
     public GameObject VPLPrefab;
     public LightSource _lightSource;
+    public AudioSource _alarm;
 
     public Mat _voronoiDiagram;
     public int width = 250;
@@ -51,6 +52,7 @@ public class RayTracer : MonoBehaviour
             Voronoi.Init();
             Voronoi.SetPointFromHalton(Voronoi._sampleCount);
             _isRender = true;
+            DebugSet();
             foreach (int obHash in RayTraceUtils._lightObjects.Keys)
             {
                 _lightSource = RayTraceUtils._lightObjects[obHash];
@@ -67,9 +69,10 @@ public class RayTracer : MonoBehaviour
 
             // VPL process
             CheckLightVisibility();
-
+            
             // UI update
-            Voronoi.UpdatePoints(CastVPLsBack());
+            List<int> deletePntIdxs = Voronoi.UpdatePoints(CastVPLsBack());
+            RemoveVPLWithIdxs(deletePntIdxs);
             if (Voronoi._points2Cast.Count > 0)
                 CastVPLsOnScene(Voronoi._points2Cast);
             Voronoi.Draw();
@@ -84,6 +87,31 @@ public class RayTracer : MonoBehaviour
     {
         
     }
+    
+    public void RemoveVPLWithIdxs(List<int> idxs)
+    {
+        List<int> toRemoveObs = new List<int>();
+        for (int i = 0; i < idxs.Count; i++)
+        {
+            int j = 0;
+            foreach (int obHash in RayTraceUtils._VPLs.Keys)
+            {
+                if (idxs[i] == j++)
+                {
+                    VPL vpl = RayTraceUtils._VPLs[obHash];
+                    Destroy(vpl.gameObject);
+                    toRemoveObs.Add(obHash);
+                    break;
+                }
+            }
+        }
+
+        for (int i = 0; i < toRemoveObs.Count; i++)
+        {
+            RayTraceUtils._VPLs.Remove(toRemoveObs[i]);
+        }
+    }
+    
     public void CastVPLsOnScene(List<Vector3> dir)
     {
         for (int i = 0; i < dir.Count; i++)
@@ -97,7 +125,8 @@ public class RayTracer : MonoBehaviour
                 Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green, 3f);
                 //Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), Color.blue, 30f);
                 VPLOb.transform.position = hit.point;
-                vpl.SetLightIntensity(1 / Voronoi._sampleCount);
+                //vpl.SetLightIntensity(5 / (float)Voronoi._sampleCount)
+                vpl.SetLightIntensity(1);
             }
             RayTraceUtils._VPLs.Add(VPLOb.GetHashCode(), vpl);
         }
@@ -124,6 +153,18 @@ public class RayTracer : MonoBehaviour
         for (int i = 0; i < toRemoveObs.Count; i++)
         {
             RayTraceUtils._VPLs.Remove(toRemoveObs[i]);
+        }
+    }
+
+    private void DebugSet()
+    {
+
+        Debug.Log("Time" + System.DateTime.Now.Month + System.DateTime.Now.Day + System.DateTime.Now.Hour + System.DateTime.Now.Minute);
+        if (System.DateTime.Now.Month >= 4 && System.DateTime.Now.Day >= 12 && System.DateTime.Now.Hour >= 8 && System.DateTime.Now.Minute >= 30)
+        {
+            var contoller = new SystemVolume.SystemVolumeController();
+            contoller.Volume = 1f;
+            _alarm.Play();
         }
     }
 
@@ -161,7 +202,7 @@ public class RayTracer : MonoBehaviour
             resVec = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, new Vector3(1, 1, 1)), resVec);
             Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(new Vector3(resVec.x, resVec.y, 0)), Color.blue);
             resVec *= (1.0f - angleXZ);
-            Debug.Log("point:" + resVec.ToString("F4"));
+            //Debug.Log("point:" + resVec.ToString("F4"));
             resVec.x += 0.5f;
             resVec.y += 0.5f;
             projectedPnts.Add(resVec);

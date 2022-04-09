@@ -6,7 +6,7 @@ Film "image"
 Sampler "integer pixelsamples" [16]
 
 # persp & ortho
-LookAt 0 3.5 0.0635 4.3 0.6 0 0 1 0 
+LookAt -4.5 2.0 0.0635 4.3 0.6 0 0 1 0 
 
 Camera "perspective" "float fov" [80]
 
@@ -14,7 +14,7 @@ WorldBegin
 
 	#point light
 	AttributeBegin
-		LightSource "point" "color L" [15 15 15] "point from" [0 2 0] "rotate" [20 1 0 0]
+		LightSource "point" "color L" [15 15 15] "point from" [0 2 0] "rotate" [-20 1 0 0]
 	AttributeEnd
 
 	#shpere

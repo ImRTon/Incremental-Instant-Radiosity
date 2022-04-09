@@ -150,8 +150,9 @@ public static class Voronoi
     public static OpenCVForUnity.CoreModule.Rect _rect;
     public static Subdiv2D _subdiv2D;
     public static List<Vector2> _points;
-    public static int _sampleCount = 10;
+    public static int _sampleCount = 64;
     public static List<Vector3> _points2Cast;
+    private static int _iterCount = 0;
     public enum LightType
     {
         SPOT, POINT, AREA
@@ -160,6 +161,7 @@ public static class Voronoi
 
     public static void Init()
     {
+        _iterCount = 0;
         _points2Cast = new List<Vector3>();
         _voronoiDiagram = new Mat(height, width, CvType.CV_8U);
         _rect = new OpenCVForUnity.CoreModule.Rect(0, 0, width, height);
@@ -322,6 +324,68 @@ public static class Voronoi
         _subdiv2D = new Subdiv2D(_rect);
     }
 
+    private static int FindPointIndexFromList(List<Vector2> points, Vector2 point)
+    {
+        for (int i = 0; i < points.Count; i++)
+        {
+            if (points[i].x == point.x && points[i].y == point.y)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int FindWorstPoint()
+    {
+        List<float> pntDistances = new List<float>();
+        List<int> pntEdgeCount = new List<int>();
+        for (int i = 0; i < _points.Count; i++)
+        {
+           pntDistances.Add(0f);
+            pntEdgeCount.Add(0);
+        }
+        
+        MatOfFloat4 edgePnts = new MatOfFloat4();
+        _subdiv2D.getEdgeList(edgePnts);
+        float[] pointArray = edgePnts.toArray();
+
+        for (int i = 0; i < pointArray.Length / 4; i++)
+        {
+            Vector2 p0 = new Vector2(pointArray[i * 4 + 0] / (float)width, pointArray[i * 4 + 1] / (float)height);
+            Vector2 p1 = new Vector2(pointArray[i * 4 + 2] / (float)width, pointArray[i * 4 + 3] / (float)height);
+            if (p0.x < 0 || p0.y < 0 || p0.x > width || p0.y > height ||
+                p1.x < 0 || p1.y < 0 || p1.x > width || p1.y > height)
+                continue;
+            float distance = Vector2.Distance(p0, p1);
+            int p0Idx = FindPointIndexFromList(_points, p0);
+            if (p0Idx != -1)
+            {
+                pntDistances[p0Idx] += distance;
+                pntEdgeCount[p0Idx]++;
+            }
+            int p1Idx = FindPointIndexFromList(_points, p1);
+            if (p1Idx != -1)
+            {
+                pntDistances[p1Idx] += distance;
+                pntEdgeCount[p1Idx]++;
+            }
+        }
+        float leastDistance = 100f;
+        int leastDisIdx = 0;
+        for (int i = 0; i < pntDistances.Count; i++)
+        {
+            pntDistances[i] /= (float)pntEdgeCount[i];
+            if (pntDistances[i] < leastDistance)
+            {
+                leastDistance = pntDistances[i];
+                leastDisIdx = i;
+            }
+        }
+        return leastDisIdx;
+
+    }
+
     private static void FindBestPoint()
     {
         /*
@@ -366,7 +430,21 @@ public static class Voronoi
                     Debug.Log("Dis sort:" + j + ", " + sortedDistances.Keys[j]);
                     avDis += sortedDistances.Keys[j] / 3.0f;
                 }
-                sortedfacetDistances.Add(avDis, k);
+                bool isInserts = true;
+                do
+                {
+                    try
+                    {
+                        if (isInserts)
+                            sortedfacetDistances.Add(avDis, k);
+                        else
+                            sortedfacetDistances.Add(avDis + Random.Range(0, 0.1f), k);
+                    }
+                    catch (System.ArgumentException)
+                    {
+                        isInserts = false;
+                    }
+                } while (!isInserts);
             }
             sortedfacetDistancesList.Add(sortedfacetDistances);
 
@@ -417,7 +495,7 @@ public static class Voronoi
         return false;
     }
 
-    public static void UpdatePoints(List<Vector2> points)
+    public static List<int> UpdatePoints(List<Vector2> points)
     {
         _points.Clear();
         _points.AddRange(points);
@@ -427,6 +505,13 @@ public static class Voronoi
         {
             _subdiv2D.insert(new Point(_points[i].x * width, _points[i].y * height));
         }
+        List<int> deletePntIdxs = new List<int>();
+        if (++_iterCount > 3)
+        {
+            deletePntIdxs.Add(FindWorstPoint());
+            _iterCount = 0;
+        }
         FindBestPoint();
+        return deletePntIdxs;
     }
 }
