@@ -49,25 +49,30 @@ public class RayTracer : MonoBehaviour
             _parser._isParseDone = false;
             Init();
             Voronoi.Init();
-            Voronoi.SetPointFromHalton(64);
+            Voronoi.SetPointFromHalton(Voronoi._sampleCount);
             _isRender = true;
             foreach (int obHash in RayTraceUtils._lightObjects.Keys)
             {
                 _lightSource = RayTraceUtils._lightObjects[obHash];
             }
+            Voronoi.Draw();
+            SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
+            FirstCastVPLsOnScene(Voronoi.WarpVoronois());
         }
 
         if (_isRender)
         {
             // Move lights
+            _lightSource.transform.Rotate(Vector3.up, Time.deltaTime * 20);
 
             // VPL process
-
+            CheckLightVisibility();
 
             // UI update
             Voronoi.Draw();
             SetMat2Texture(Voronoi._voronoiDiagram, _diagram);
-            CastVPLsOnScene(Voronoi.WarpVoronois());
+            
+
         }
     }
 
@@ -75,23 +80,74 @@ public class RayTracer : MonoBehaviour
     {
         
     }
-    public List<GameObject> CastVPLsOnScene(List<Vector3> dir)
+    public void FirstCastVPLsOnScene(List<Vector3> dir)
     {
-        List<GameObject> VPLs = new List<GameObject>();
         for (int i = 0; i < dir.Count; i++)
         {
             GameObject VPLOb = Instantiate(VPLPrefab);
             VPL vpl = VPLOb.GetComponent<VPL>();
-            RayTraceUtils._VPLs.Add(VPLOb.GetHashCode(), vpl);
             Vector3 lightDir = _lightSource.transform.forward;
             RaycastHit hit;
             if (Physics.Raycast(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), out hit))
             {
                 Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green);
+                VPLOb.transform.position = hit.point;
+                vpl.SetLightIntensity(1 / Voronoi._sampleCount);
             }
-            VPLs.Add(VPLOb);
+            RayTraceUtils._VPLs.Add(VPLOb.GetHashCode(), vpl);
         }
-        return VPLs;
+    }
+    
+    public void CheckLightVisibility()
+    {
+        List<int> toRemoveObs = new List<int>();
+        foreach (int obHash in RayTraceUtils._VPLs.Keys)
+        {
+            VPL vpl = RayTraceUtils._VPLs[obHash];
+            if (Physics.Raycast(_lightSource.transform.position, vpl.GetPos()))
+            {
+                float angle = Vector3.SignedAngle(_lightSource.transform.forward, (vpl.transform.position - _lightSource.transform.position), _lightSource.transform.forward);
+                if (Mathf.Abs(angle) <= 90)
+                {
+                    Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.forward, Color.red);
+                    continue;
+                }
+            }
+            toRemoveObs.Add(obHash);
+            Destroy(vpl.gameObject);
+        }
+        for (int i = 0; i < toRemoveObs.Count; i++)
+        {
+            RayTraceUtils._VPLs.Remove(toRemoveObs[i]);
+        }
+    }
+
+    private void CastVPLsBack()
+    {
+        List<Vector2> projectedPnts = new List<Vector2>();
+        foreach (int obHash in RayTraceUtils._VPLs.Keys)
+        {
+            VPL vpl = RayTraceUtils._VPLs[obHash];
+            Vector3 projectedPnt = (vpl.GetPos() - _lightSource.transform.position).normalized;
+            float angleXY = Vector3.SignedAngle(_lightSource.transform.right, projectedPnt, _lightSource.transform.forward);
+            Vector3 projected2DPnt = Quaternion.AngleAxis(angleXY, _lightSource.transform.forward) * _lightSource.transform.right;
+            float angleXZ = Vector3.Angle(projected2DPnt, projectedPnt);
+            float cos = Mathf.Cos(angleXY * Mathf.Deg2Rad);
+            float sin = Mathf.Sin(angleXY * Mathf.Deg2Rad);
+            switch (Voronoi._lightType)
+            {
+                case Voronoi.LightType.SPOT:
+                    angleXZ /= 90.0f;
+                    break;
+                case Voronoi.LightType.POINT:
+                    angleXZ /= 180.0f;
+                    break;
+            }
+            Vector2 resVec = new Vector2(cos , sin);
+            resVec = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, Vector3.one), resVec);
+            resVec *= angleXZ;
+            projectedPnts.Add(resVec);
+        }
     }
 
     private void SetImgTexture(Texture2D texture2D)

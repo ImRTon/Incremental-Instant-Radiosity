@@ -111,6 +111,17 @@ public static class RayTraceUtils
         }
         return 0.0f;
     }
+
+    public static Vector2 PointOnBounds(Bounds bounds, Vector2 aDirection)
+    {
+        aDirection.Normalize();
+        var e = bounds.extents;
+        var v = aDirection;
+        float y = e.x * v.y / v.x;
+        if (Mathf.Abs(y) < e.y)
+            return new Vector2(e.x, y);
+        return new Vector2(e.y * v.x / v.y, e.y);
+    }
 }
 
 public static class Voronoi
@@ -121,6 +132,7 @@ public static class Voronoi
     public static OpenCVForUnity.CoreModule.Rect _rect;
     public static Subdiv2D _subdiv2D;
     public static List<Vector2> _points;
+    public static int _sampleCount = 10;
     public enum LightType
     {
         SPOT, POINT, AREA
@@ -214,16 +226,16 @@ public static class Voronoi
                 {
                     for (int i = 0; i < _points.Count; i++)
                     {
-                        // warp 2d points to 3d points
-                        float a = _points[i].x * 3.14159265f * 2.0f;
-                        float l = Mathf.Sqrt(_points[i].y);
-                        Vector3 resVec = new Vector3(Mathf.Cos(a) * l, Mathf.Sin(a) * l, 0.0f);
-                        l = Vector3.Dot(resVec, resVec);
-                        if (l >= 1.0f)
-                            resVec.z = 0;
-                        else
-                            resVec.z = Mathf.Sqrt(1.0f - l);
-                        Debug.DrawRay(new Vector3(0, 0, 0), resVec, Color.red, 30f);
+                        // Warp 2D Vector to 3d sphere
+                        Vector2 pnt = new Vector2(_points[i].x - 0.5f, _points[i].y -0.5f);
+                        float len = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, Vector3.one), pnt).magnitude;
+                        float r = pnt.magnitude;
+                        float cos = pnt.x / r;
+                        float sin = pnt.y / r;
+                        Vector3 resVec = new Vector3(cos, sin, 0.0f);
+                        float angle = r / len * 90; // 0~90
+                        Vector2 pntVert = -Vector2.Perpendicular(pnt);
+                        resVec = Quaternion.AngleAxis(angle, new Vector3(pntVert.x, pntVert.y, 0)) * resVec;
                         vecs.Add(resVec);
                     }
                 }
@@ -233,15 +245,16 @@ public static class Voronoi
                     // warp 2d points to 3d sphere points
                     for (int i = 0; i < _points.Count; i++)
                     {
-                        float a = _points[i].x * 3.14159265f * 2.0f;
-                        float l = Mathf.Sqrt(_points[i].y);
-                        Vector3 resVec = new Vector3(Mathf.Cos(a) * l, Mathf.Sin(a) * l, 0.0f);
-                        l = Vector3.Dot(resVec, resVec);
-                        if (l >= 1.0f)
-                            resVec.z = 0;
-                        else
-                            resVec.z = Mathf.Sqrt(1.0f - l);
-                        Debug.DrawRay(new Vector3(0, 0, 0), resVec, Color.red, 30f);
+                        // Warp 2D Vector to 3d sphere
+                        Vector2 pnt = new Vector2(_points[i].x - 0.5f, _points[i].y - 0.5f);
+                        float len = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, Vector3.one), pnt).magnitude;
+                        float r = pnt.magnitude;
+                        float cos = pnt.x / r;
+                        float sin = pnt.y / r;
+                        Vector3 resVec = new Vector3(cos, sin, 0.0f);
+                        float angle = r / len * 180; // 0~180
+                        Vector2 pntVert = -Vector2.Perpendicular(pnt);
+                        resVec = Quaternion.AngleAxis(angle, new Vector3(pntVert.x, pntVert.y, 0)) * resVec;
                         vecs.Add(resVec);
                     }
                 }
