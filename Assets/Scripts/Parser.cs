@@ -357,8 +357,8 @@ public class Parser : MonoBehaviour
                                             if (isObSettingEnd)
                                             {
                                                 // Set Canvas
-                                                _canvas.rectTransform.sizeDelta = new Vector2(_resolutionX / _resolutionY * 900, 900);
-                                                _canvas.rectTransform.anchoredPosition = new Vector3(-_resolutionX / _resolutionY * 900 / 2, 0, 0);
+                                                _canvas.rectTransform.sizeDelta = new Vector2((float)_resolutionX / (float)_resolutionY * 900.0f, 900);
+                                                _canvas.rectTransform.anchoredPosition = new Vector3((float)-_resolutionX / (float)_resolutionY * 900.0f / 2.0f, 0, 0);
 
                                                 // Set Camera
 

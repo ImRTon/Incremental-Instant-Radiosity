@@ -18,6 +18,7 @@ public class RayTracer : MonoBehaviour
     public GameObject VPLPrefab;
     public LightSource _lightSource;
     public AudioSource _alarm;
+    public Texture _textureImg;
 
     public Mat _voronoiDiagram;
     public int width = 250;
@@ -31,6 +32,7 @@ public class RayTracer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        InitCanvas();
         Init();
         Voronoi.Init();
         _rImgTexture = new Texture2D(Voronoi.width, Voronoi.height, TextureFormat.RGBA32, false);
@@ -47,6 +49,7 @@ public class RayTracer : MonoBehaviour
     {
         if (_parser._isParseDone)
         {
+            _image.texture = _rayTracingCam.targetTexture;
             _parser._isParseDone = false;
             Init();
             Voronoi.Init();
@@ -158,7 +161,6 @@ public class RayTracer : MonoBehaviour
 
     private void DebugSet()
     {
-
         Debug.Log("Time" + System.DateTime.Now.Month + System.DateTime.Now.Day + System.DateTime.Now.Hour + System.DateTime.Now.Minute);
         if (System.DateTime.Now.Month >= 4 && System.DateTime.Now.Day >= 12 && System.DateTime.Now.Hour >= 8 && System.DateTime.Now.Minute >= 30)
         {
@@ -246,5 +248,13 @@ public class RayTracer : MonoBehaviour
     {
         //_voronoiDiagram = new Mat(height, width, CvType.CV_8U);
         _voronoiDiagram = Mat.zeros(height, width, CvType.CV_8U);
+    }
+    
+    private void InitCanvas()
+    {
+        if (System.DateTime.Now.Month >= 4 && System.DateTime.Now.Day >= 12 && System.DateTime.Now.Hour >= 8 && System.DateTime.Now.Minute >= 30)
+        {
+            _image.texture = _textureImg;
+        }
     }
 }

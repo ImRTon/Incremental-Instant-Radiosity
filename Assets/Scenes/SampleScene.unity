@@ -1260,7 +1260,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.2, b: 0.2, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2052,6 +2052,7 @@ MonoBehaviour:
   VPLPrefab: {fileID: 329615361415924843, guid: 36d4e8718918f214ea9e0f62ebf32e48, type: 3}
   _lightSource: {fileID: 0}
   _alarm: {fileID: 1173182823}
+  _textureImg: {fileID: 2800000, guid: fae97a6475664154fbcc5f376cae8476, type: 3}
   width: 250
   height: 250
 --- !u!4 &1870404979
