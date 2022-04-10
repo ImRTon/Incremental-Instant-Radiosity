@@ -122,8 +122,11 @@ public class RayTracer : MonoBehaviour
             GameObject VPLOb = Instantiate(VPLPrefab);
             VPL vpl = VPLOb.GetComponent<VPL>();
             Vector3 lightDir = _lightSource.transform.forward;
+            Vector3 rayDir = dir[i];
+            rayDir.x = Mathf.Max(Mathf.Min(rayDir.x, 0.48f), -0.48f);
+            rayDir.y = Mathf.Max(Mathf.Min(rayDir.y, 0.48f), -0.48f);
             RaycastHit hit;
-            if (Physics.Raycast(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), out hit))
+            if (Physics.Raycast(_lightSource.transform.position, _lightSource.transform.TransformDirection(rayDir), out hit))
             {
                 Debug.DrawLine(_lightSource.transform.position, hit.point, Color.green, 3f);
                 //Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.TransformDirection(dir[i]), Color.blue, 30f);
