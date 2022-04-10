@@ -9,6 +9,7 @@ public class LightSource : MonoBehaviour
     public Vector2 _area = Vector2.one;
     public LightType _lightType;
     public List<VPL> VPLs = new List<VPL>();
+    public GameObject _spotOb;
     // Start is called before the first frame update
     private void Awake()
     {
@@ -28,5 +29,5 @@ public class LightSource : MonoBehaviour
 
 public enum LightType
 {
-    Point, Area
+    Point, Area, Spot
 }

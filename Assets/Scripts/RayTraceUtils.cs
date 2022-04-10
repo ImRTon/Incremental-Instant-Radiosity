@@ -157,7 +157,7 @@ public static class Voronoi
     {
         SPOT, POINT, AREA
     }
-    public static LightType _lightType;
+    public static LightType _lightType = LightType.SPOT;
 
     public static void Init()
     {
@@ -166,7 +166,6 @@ public static class Voronoi
         _voronoiDiagram = new Mat(height, width, CvType.CV_8U);
         _rect = new OpenCVForUnity.CoreModule.Rect(0, 0, width, height);
         _subdiv2D = new Subdiv2D(_rect);
-        _lightType = LightType.SPOT;
     }
 
     public static void SetPointFromHalton(int size)
@@ -183,7 +182,7 @@ public static class Voronoi
     {
         _voronoiDiagram.setTo(Scalar.all(0));
         DrawVoronoi();
-        DrawDelaunay();
+        //DrawDelaunay();
         DrawPoints();
     }
 
@@ -204,9 +203,9 @@ public static class Voronoi
                 p1.x < 0 || p1.y < 0 || p1.x > width || p1.y > height ||
                 p2.x < 0 || p2.y < 0 || p2.x > width || p2.y > height))
             {
-                Imgproc.line(_voronoiDiagram, p0, p1, new Scalar(128), 1, Imgproc.LINE_AA, 0);
-                Imgproc.line(_voronoiDiagram, p1, p2, new Scalar(128), 1, Imgproc.LINE_AA, 0);
-                Imgproc.line(_voronoiDiagram, p2, p0, new Scalar(128), 1, Imgproc.LINE_AA, 0);
+                Imgproc.line(_voronoiDiagram, p0, p1, new Scalar(10), 1, Imgproc.LINE_AA, 0);
+                Imgproc.line(_voronoiDiagram, p1, p2, new Scalar(10), 1, Imgproc.LINE_AA, 0);
+                Imgproc.line(_voronoiDiagram, p2, p0, new Scalar(10), 1, Imgproc.LINE_AA, 0);
             }
 
         }
@@ -235,6 +234,7 @@ public static class Voronoi
         _subdiv2D.getVoronoiFacetList(new MatOfInt(), facets, centPoints);
 
         List<MatOfPoint> ifacets = new List<MatOfPoint>();
+        ifacets.Add(new MatOfPoint());
         
         for (int i = 0; i < facets.Count; i++)
         {
@@ -243,6 +243,8 @@ public static class Voronoi
             ifacet.fromArray(facets[i].toArray());
             Scalar color = new Scalar(i * 3 % 255);
             Imgproc.fillConvexPoly(_voronoiDiagram, ifacet, color);
+            ifacets[0] = ifacet;
+            Imgproc.polylines(_voronoiDiagram, ifacets, true, new Scalar(255), 1, Imgproc.LINE_AA, 0);
         }
     }
 
@@ -302,7 +304,7 @@ public static class Voronoi
                         float cos = pnt.x / r;
                         float sin = pnt.y / r;
                         Vector3 resVec = new Vector3(cos, sin, 0.0f);
-                        float angle = (1.0f - r / len) * 180; // 0~180
+                        float angle = (1.0f - r / len) * 180 - 90f; // -90 ~ 90
                         Vector2 pntVert = -Vector2.Perpendicular(pnt);
                         resVec = Quaternion.AngleAxis(angle, new Vector3(pntVert.x, pntVert.y, 0)) * resVec;
                         vecs.Add(resVec);

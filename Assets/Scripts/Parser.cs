@@ -173,11 +173,22 @@ public class Parser : MonoBehaviour
                                                                 case "point":
                                                                     obLight._lightSource.type = UnityEngine.LightType.Point;
                                                                     obLight._lightType = LightType.Point;
+                                                                    obLight._spotOb.SetActive(false);
+                                                                    Voronoi._lightType = Voronoi.LightType.POINT;
                                                                     break;
 
                                                                 case "area":
                                                                     obLight._lightSource.type = UnityEngine.LightType.Rectangle;
                                                                     obLight._lightType = LightType.Area;
+                                                                    obLight._spotOb.SetActive(false);
+                                                                    Voronoi._lightType = Voronoi.LightType.AREA;
+                                                                    break;
+
+                                                                case "spot":
+                                                                    obLight._lightSource.type = UnityEngine.LightType.Spot;
+                                                                    obLight._lightSource.spotAngle = 180;
+                                                                    obLight._lightType = LightType.Spot;
+                                                                    Voronoi._lightType = Voronoi.LightType.SPOT;
                                                                     break;
 
                                                                 case "color L":

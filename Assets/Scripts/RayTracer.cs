@@ -141,7 +141,7 @@ public class RayTracer : MonoBehaviour
             if (Physics.Raycast(_lightSource.transform.position, vpl.GetPos()))
             {
                 float angle = Vector3.SignedAngle(_lightSource.transform.forward, (vpl.transform.position - _lightSource.transform.position), _lightSource.transform.forward);
-                if (Mathf.Abs(angle) <= 90)
+                if (Mathf.Abs(angle) <= 90 || Voronoi._lightType == Voronoi.LightType.POINT)
                 {
                     Debug.DrawRay(_lightSource.transform.position, _lightSource.transform.forward, Color.red);
                     continue;
@@ -188,7 +188,8 @@ public class RayTracer : MonoBehaviour
             Vector3 localDir = _lightSource.transform.InverseTransformDirection(projectedPnt).normalized;
             resVec.x = localDir.x;
             resVec.y = localDir.y;
-            float angleXZ = Vector3.Angle(new Vector3(resVec.x, resVec.y, 0), localDir);
+            Vector2 resVecVert = -Vector2.Perpendicular(resVec);
+            float angleXZ = Vector3.SignedAngle(new Vector3(resVec.x, resVec.y, 0), localDir, resVecVert);
             Debug.Log("Angle:" + angleXZ);
             switch (Voronoi._lightType)
             {
@@ -196,7 +197,7 @@ public class RayTracer : MonoBehaviour
                     angleXZ /= 90.0f;
                     break;
                 case Voronoi.LightType.POINT:
-                    angleXZ /= 180.0f;
+                    angleXZ = (angleXZ + 90) / 180.0f;
                     break;
             }
             resVec = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, new Vector3(1, 1, 1)), resVec);
