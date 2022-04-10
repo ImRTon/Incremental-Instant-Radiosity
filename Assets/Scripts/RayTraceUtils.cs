@@ -150,7 +150,7 @@ public static class Voronoi
     public static OpenCVForUnity.CoreModule.Rect _rect;
     public static Subdiv2D _subdiv2D;
     public static List<Vector2> _points;
-    public static int _sampleCount = 64;
+    public static int _sampleCount = 32;
     public static List<Vector3> _points2Cast;
     private static int _iterCount = 0;
     public enum LightType
@@ -412,12 +412,18 @@ public static class Voronoi
                     continue;*/
                 List<float> distances = new List<float>();
                 SortedList<float, int> sortedDistances = new SortedList<float, int>();
+                // 每個 facets 內的點與各個 _point 算距離
                 for (int j = 0; j < _points.Count; j++)
                 {
                     try
                     {
-                        Vector2 pointOnBound = RayTraceUtils.PointOnBounds(new Bounds(Vector3.zero, new Vector3(1, 1, 1)), new Vector2((float)(facetsPoints[k].x / width) - 0.5f, (float)(facetsPoints[k].y / height) - 0.5f));
-                        sortedDistances.Add(Vector2.Distance(_points[j], new Vector2(pointOnBound.x + 0.5f, pointOnBound.y + 0.5f)), j);
+                        Vector2 pntOnFacet = new Vector2((float)(facetsPoints[k].x / (float)width) - 0.5f, (float)(facetsPoints[k].y / (float)height) - 0.5f);
+                        if (pntOnFacet.x < -0.5f || pntOnFacet.y < -0.5f || pntOnFacet.x > 0.5f || pntOnFacet.y > 0.5f)
+                        {
+                            pntOnFacet = pntOnFacet.normalized * 0.5f;
+                            pntOnFacet = RayTraceUtils.PointOnBounds(new Bounds(new Vector3(0.5f, 0.5f, 0.5f), new Vector3(1, 1, 1)), pntOnFacet);
+                        }
+                        sortedDistances.Add(Vector2.Distance(_points[j], new Vector2(pntOnFacet.x + 0.5f, pntOnFacet.y + 0.5f)), j);
                     }
                     catch (System.ArgumentException)
                     {
@@ -438,7 +444,10 @@ public static class Voronoi
                         if (isInserts)
                             sortedfacetDistances.Add(avDis, k);
                         else
+                        {
                             sortedfacetDistances.Add(avDis + Random.Range(0, 0.1f), k);
+                            isInserts = true;
+                        }
                     }
                     catch (System.ArgumentException)
                     {
@@ -455,6 +464,7 @@ public static class Voronoi
                 try
                 {
                     sortedfacetsDistances.Add(sortedfacetDistances.Keys[idx--], i);
+                    isInsert = true;
                 }
                 catch (System.ArgumentException)
                 {

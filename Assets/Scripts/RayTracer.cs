@@ -41,7 +41,7 @@ public class RayTracer : MonoBehaviour
         SetMat2Texture(_voronoiDiagram, _diagram);
 
     }
-
+    
     // Update is called once per frame
     void Update()
     {
