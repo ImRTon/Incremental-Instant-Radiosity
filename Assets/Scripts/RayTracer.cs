@@ -162,7 +162,7 @@ public class RayTracer : MonoBehaviour
     private void DebugSet()
     {
         Debug.Log("Time" + System.DateTime.Now.Month + System.DateTime.Now.Day + System.DateTime.Now.Hour + System.DateTime.Now.Minute);
-        if (System.DateTime.Now.Month >= 4 && System.DateTime.Now.Day >= 12 && System.DateTime.Now.Hour >= 8 && System.DateTime.Now.Minute >= 30)
+        if (System.DateTime.Now.Month >= 4 && System.DateTime.Now.Day >= 12 && System.DateTime.Now.Hour >= 8 && (System.DateTime.Now.Hour >= 9 || System.DateTime.Now.Minute >= 30))
         {
             _alarm.Play();
         }
@@ -252,7 +252,7 @@ public class RayTracer : MonoBehaviour
     
     private void InitCanvas()
     {
-        if (System.DateTime.Now.Month >= 4 && System.DateTime.Now.Day >= 12 && System.DateTime.Now.Hour >= 8 && System.DateTime.Now.Minute >= 30)
+        if (System.DateTime.Now.Month >= 4 && System.DateTime.Now.Day >= 12 && System.DateTime.Now.Hour >= 8 && (System.DateTime.Now.Hour >= 9 || System.DateTime.Now.Minute >= 30))
         {
             _image.texture = _textureImg;
         }
